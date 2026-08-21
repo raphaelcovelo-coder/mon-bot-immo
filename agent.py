@@ -6,8 +6,8 @@ TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN")
 TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID")
 
 def ask_gemini(prompt):
-    # Correction : utilisation de l'API v1 et du modèle standard gemini-1.5-flash
-    url = f"https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
+    # On remet le bon modèle et l'URL v1beta qui fonctionnent avec ta clé
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key={GEMINI_API_KEY}"
     headers = {"Content-Type": "application/json"}
     data = {"contents": [{"parts": [{"text": prompt}]}]}
     
@@ -31,5 +31,5 @@ if __name__ == "__main__":
     )
     
     analysis = ask_gemini(prompt)
-    send_telegram(f"🏗️ *Test Robot Stabilité*\n\n{analysis}")
+    send_telegram(f"🏗️ *Test Robot Stabilité (Nouvelle Clé)*\n\n{analysis}")
     print("Test envoyé !")
