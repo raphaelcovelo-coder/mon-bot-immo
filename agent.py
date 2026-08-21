@@ -6,8 +6,8 @@ TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN")
 TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID")
 
 def ask_gemini(prompt):
-    # Changement ici : v1beta devient v1
-    url = f"https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
+    # On utilise l'URL v1beta avec gemini-1.5-flash
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
     headers = {"Content-Type": "application/json"}
     data = {
         "contents": [{"parts": [{"text": prompt}]}]
@@ -30,6 +30,7 @@ def send_telegram(message):
     requests.post(url, json=payload)
 
 if __name__ == "__main__":
+    print("L'agent analyse le marché...")
     prompt = (
         "Agis en tant qu'expert en investissement immobilier. "
         "Donne une analyse très courte (5 lignes max) sur le potentiel locatif à Gujan-Mestras."
@@ -37,3 +38,4 @@ if __name__ == "__main__":
     analysis = ask_gemini(prompt)
     message_final = f"🏡 Rapport Stratégique - Agent Immo\n\n{analysis}"
     send_telegram(message_final)
+    print("Terminé !")
