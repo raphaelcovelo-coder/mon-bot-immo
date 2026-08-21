@@ -3,8 +3,7 @@ name: Immo Search Agent
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 8 * * *'
-    - cron: '0 14 * * *'
+    - cron: '0 8 * * *'  # Un seul envoi par jour pour économiser le quota
 
 jobs:
   run-agent:
