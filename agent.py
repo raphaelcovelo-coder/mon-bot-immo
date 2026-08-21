@@ -1,4 +1,5 @@
 import os
+import time
 import requests
 
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
@@ -8,14 +9,35 @@ TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID")
 def send_telegram(text):
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
     payload = {"chat_id": TELEGRAM_CHAT_ID, "text": text, "parse_mode": "Markdown"}
-    response = requests.post(url, json=payload)
-    print(f"Statut Telegram : {response.status_code}")
+    try:
+        response = requests.post(url, json=payload)
+        print(f"Statut Telegram : {response.status_code}")
+    except Exception as e:
+        print(f"Erreur d'envoi Telegram : {e}")
+
+def ask_gemini_with_retry(prompt, retries=4, delay=5):
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key={GEMINI_API_KEY}"
+    headers = {"Content-Type": "application/json"}
+    data = {"contents": [{"parts": [{"text": prompt}]}]}
+    
+    for attempt in range(retries):
+        response = requests.post(url, headers=headers, json=data)
+        if response.status_code == 200:
+            try:
+                return response.json()["candidates"][0]["content"]["parts"][0]["text"]
+            except Exception as e:
+                return f"Erreur de traitement : {e}"
+        elif response.status_code == 503:
+            print(f"Surcharge Google (503), tentative {attempt + 1}/{retries} dans {delay}s...")
+            time.sleep(delay)
+            delay *= 2  # Double le temps d'attente à chaque essai
+        else:
+            return f"Erreur API ({response.status_code}) : {response.text}"
+            
+    return "Erreur : Le modèle est temporairement surchargé (503) après plusieurs tentatives."
 
 if __name__ == "__main__":
     print("Génération du rapport 'Immeubles avec Travaux'...")
-    
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key={GEMINI_API_KEY}"
-    headers = {"Content-Type": "application/json"}
     
     prompt = (
         "Agis en tant qu'expert en investissement immobilier. "
@@ -29,17 +51,7 @@ if __name__ == "__main__":
         "Donne 2 ou 3 communes cibles très porteuses pour ce profil et inclus des liens de recherche clairs vers LeBonCoin."
     )
     
-    data = {"contents": [{"parts": [{"text": prompt}]}]}
-    
-    response = requests.post(url, headers=headers, json=data)
-    
-    if response.status_code == 200:
-        try:
-            result = response.json()
-            analysis = result["candidates"][0]["content"]["parts"][0]["text"]
-            message = f"🏗️ *Chasse Immo - Spécial Immeubles à Rénover*\n\n{analysis}"
-            send_telegram(message)
-        except Exception as e:
-            send_telegram(f"Erreur de traitement : {e}")
-    else:
-        send_telegram(f"Erreur API ({response.status_code}) : {response.text}")
+    analysis = ask_gemini_with_retry(prompt)
+    message = f"🏗️ *Chasse Immo - Spécial Immeubles à Rénover*\n\n{analysis}"
+    send_telegram(message)
+    print("Processus terminé.")
