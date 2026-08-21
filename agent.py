@@ -7,7 +7,8 @@ TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID")
 
 def send_telegram(text):
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
-    if len(text > 4000):
+    # Correction de la syntaxe de la longueur du texte
+    if len(text) > 4000:
         text = text[:3950] + "\n\n[Rapport tronqué]"
     payload = {"chat_id": TELEGRAM_CHAT_ID, "text": text}
     try:
@@ -41,7 +42,8 @@ if __name__ == "__main__":
     data = {"contents": [{"parts": [{"text": prompt}]}]}
     
     try:
-        response = requests.post(url, headers=headers, json=data, timeout=30)
+        # Timeout étendu à 60 secondes pour laisser le temps au modèle de calculer les chiffres
+        response = requests.post(url, headers=headers, json=data, timeout=60)
         if response.status_code == 200:
             result = response.json()
             analysis = result["candidates"][0]["content"]["parts"][0]["text"]
