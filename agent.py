@@ -7,7 +7,6 @@ TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID")
 
 def send_telegram(text):
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
-    # Correction de la syntaxe de la longueur du texte
     if len(text) > 4000:
         text = text[:3950] + "\n\n[Rapport tronqué]"
     payload = {"chat_id": TELEGRAM_CHAT_ID, "text": text}
@@ -18,7 +17,7 @@ def send_telegram(text):
         print(f"Erreur d'envoi Telegram : {e}")
 
 if __name__ == "__main__":
-    print("Génération du rapport d'investissement chiffré...")
+    print("Vérification des quotas et génération du rapport...")
     
     url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key={GEMINI_API_KEY}"
     headers = {"Content-Type": "application/json"}
@@ -42,15 +41,20 @@ if __name__ == "__main__":
     data = {"contents": [{"parts": [{"text": prompt}]}]}
     
     try:
-        # Timeout étendu à 60 secondes pour laisser le temps au modèle de calculer les chiffres
         response = requests.post(url, headers=headers, json=data, timeout=60)
+        
         if response.status_code == 200:
             result = response.json()
             analysis = result["candidates"][0]["content"]["parts"][0]["text"]
             message = f"🎯 CHASSE IMMO - SIMULATION & PÉPITE\n\n{analysis}"
             send_telegram(message)
+        elif response.status_code == 429:
+            # Gestion propre si le quota journalier est atteint
+            print("Quota journalier Gemini atteint (429).")
+            send_telegram("⚠️ *Chasse Immo* : Quota journalier de l'API atteint suite aux tests répétés. Le robot reprendra ses envois automatiques dès demain à 9h00 !")
         else:
             send_telegram(f"Erreur API Gemini ({response.status_code}) : {response.text}")
+            
     except Exception as e:
         send_telegram(f"Erreur de connexion : {e}")
         
