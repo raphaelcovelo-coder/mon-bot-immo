@@ -6,11 +6,9 @@ TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN")
 TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID")
 
 def ask_gemini(prompt):
-    # On utilise gemini-1.5-flash (plus stable pour le quota gratuit)
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
+    # Correction : utilisation de l'API v1 et du modèle standard gemini-1.5-flash
+    url = f"https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
     headers = {"Content-Type": "application/json"}
-    
-    # SANS outil google_search pour éviter de saturer le quota immédiatement
     data = {"contents": [{"parts": [{"text": prompt}]}]}
     
     response = requests.post(url, headers=headers, json=data)
@@ -26,7 +24,6 @@ def send_telegram(message):
     requests.post(url, json=payload)
 
 if __name__ == "__main__":
-    # Prompt sans recherche web pour le moment
     prompt = (
         "Donne-moi une analyse stratégique des immeubles de rapport dans le Sud-Ouest. "
         "Quelles sont les villes où le rendement locatif est élevé actuellement pour un budget de 300 000 € ? "
@@ -35,3 +32,4 @@ if __name__ == "__main__":
     
     analysis = ask_gemini(prompt)
     send_telegram(f"🏗️ *Test Robot Stabilité*\n\n{analysis}")
+    print("Test envoyé !")
