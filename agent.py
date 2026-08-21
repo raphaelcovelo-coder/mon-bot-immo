@@ -11,43 +11,38 @@ def send_telegram(text):
     try:
         response = requests.post(url, json=payload, timeout=10)
         print(f"Statut Telegram : {response.status_code}")
-        print(f"Réponse Telegram : {response.text}")
     except Exception as e:
         print(f"Erreur d'envoi Telegram : {e}")
 
 if __name__ == "__main__":
-    print("Début de la recherche d'immeubles à rénover...")
+    print("Lancement de l'agent (Ciblage Second Œuvre)...")
     
     url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key={GEMINI_API_KEY}"
     headers = {"Content-Type": "application/json"}
     
     prompt = (
         "Agis en tant qu'expert en investissement immobilier. "
-        "Donne 2 communes dans le Sud-Ouest idéales pour acheter un immeuble de rapport **à rénover** "
-        "(budget max 300 000 €, recherche de passoires thermiques ou de gros œuvre, exclure absolument le clé en main). "
-        "Précise pourquoi c'est intéressant avec tes travaux à coût nul, et inclus des liens URL bruts vers LeBonCoin pour ces recherches."
+        "Donne 2 communes porteuses dans le Sud-Ouest pour l'achat d'un immeuble de rapport "
+        "avec un budget maximum de 300 000 €. "
+        "Règles strictes sur les travaux : "
+        "- **Second œuvre uniquement** : le gros œuvre (toiture, charpente, structure) doit être sain. "
+        "- Les travaux se concentrent sur l'intérieur : électricité, plomberie, isolation, création de cloisons/lots, salles de bains, cuisines, peintures et sols. "
+        "- Exclure le clé en main (il faut de la création de valeur par l'intérieur) et exclure les chantiers de gros œuvre lourd. "
+        "Fournis une analyse claire, le profil des biens recherchés, et des liens de recherche web fonctionnels et stables pour consulter les annonces."
     )
     
     data = {"contents": [{"parts": [{"text": prompt}]}]}
     
     try:
-        # Timeout de 30 secondes pour éviter que le script ne bloqué
         response = requests.post(url, headers=headers, json=data, timeout=30)
-        print(f"Statut Gemini : {response.status_code}")
-        
         if response.status_code == 200:
             result = response.json()
             analysis = result["candidates"][0]["content"]["parts"][0]["text"]
-            message = f"CHASSE IMMO - SPECIAL RENOVATION\n\n{analysis}"
+            message = f"CHASSE IMMO - SECOND OEUVRE\n\n{analysis}"
             send_telegram(message)
         else:
-            err_msg = f"Erreur API Gemini ({response.status_code}) : {response.text}"
-            print(err_msg)
-            send_telegram(err_msg)
-            
+            send_telegram(f"Erreur API Gemini ({response.status_code}) : {response.text}")
     except Exception as e:
-        err_msg = f"Erreur de connexion : {e}"
-        print(err_msg)
-        send_telegram(err_msg)
+        send_telegram(f"Erreur de connexion : {e}")
         
     print("Fin du script.")
