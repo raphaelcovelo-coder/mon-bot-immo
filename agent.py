@@ -17,25 +17,26 @@ def send_telegram(text):
         print(f"Erreur d'envoi Telegram : {e}")
 
 if __name__ == "__main__":
-    print("Vérification des quotas et génération du rapport...")
+    print("Génération du rapport d'investissement (Occupation Partielle)...")
     
     url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key={GEMINI_API_KEY}"
     headers = {"Content-Type": "application/json"}
     
     prompt = (
         "Agis en tant qu'expert en investissement immobilier et analyste financier redoutable. "
-        "Fournis une analyse ultra-concrète pour un immeuble de rapport dans le Sud-Ouest (ex: Agen, Montauban, ou Périgueux) "
-        "avec ces contraintes strictes : "
-        "1. Budget d'acquisition max : 220 000 € (+ frais de notaire). "
-        "2. Structure saine, **second œuvre uniquement** (électricité, plomberie, isolation, cloisons, finitions). "
-        "3. **Travaux à 0 € pour l'investisseur** (mais intègre leur valeur théorique de marché dans le calcul de création de valeur / plus-value latente). "
-        "4. **Simulation financière complète et chiffrée** : "
-        "   - Prix d'achat + Notaire + Valeur des travaux de second œuvre. "
-        "   - Valeur vénale estimée post-rénovation (création de fonds propres immédiats). "
-        "   - Recettes locatives détaillées (ex: nombre de lots, loyer par lot, total mensuel et annuel). "
-        "   - Mensualité de crédit estimée (sur 25 ans à taux actuel). "
-        "   - **Cash-flow net mensuel** calculé. "
-        "5. **Sites professionnels ciblés** : donne les liens URL exacts ou noms de plateformes spécifiques non grand public (ex: immo-notaires.fr, agorastore.fr, cession-commerce.com, ou sections 'professionnels/murs' des réseaux locaux) où trouver ce type de bien."
+        "Fournis une analyse ultra-concrète et chiffrée pour un immeuble de rapport dans le Sud-Ouest (ex: Agen, Montauban, Périgueux) "
+        "en ciblant **exclusivement des immeubles partiellement occupés** (ex: sur 4 lots, 2 sont déjà loués avec baux en cours et 2 sont vacants/bruts à aménager). "
+        "Règles strictes : "
+        "1. **Jamais 100% loué, jamais 100% vide** : l'occupation partielle est obligatoire pour avoir du cash-flow immédiat sur les lots loués tout en pouvant attaquer les travaux de second œuvre tout de suite sur les lots vacants, sans attendre le départ de locataires. "
+        "2. Budget d'acquisition max : 220 000 € (+ notaire). "
+        "3. Structure saine, **second œuvre uniquement** (électricité, plomberie, isolation, cloisons sur les plateaux vacants). "
+        "4. **Travaux à 0 € pour l'investisseur** (bénéficiant de la décote partielle et de la valeur ajoutée immédiate). "
+        "5. **Simulation financière complète** : "
+        "   - Prix d'achat + Notaire. "
+        "   - Loyers actuels des lots occupés VS potentiel total une fois les plateaux vacants rénovés. "
+        "   - Mensualité de crédit (25 ans) et calcul précis du **cash-flow net dès le premier mois**. "
+        "6. **Sources pros** : Cite des sites spécialisés (ex: immo-notaires.fr, agorastore.fr, cessions professionnelles). "
+        "CONSIGNES DE MISE EN PAGE : Sois percutant, va droit au but, utilise des listes à puces courtes pour tenir en un seul message Telegram (sous les 3800 caractères)."
     )
     
     data = {"contents": [{"parts": [{"text": prompt}]}]}
@@ -46,12 +47,10 @@ if __name__ == "__main__":
         if response.status_code == 200:
             result = response.json()
             analysis = result["candidates"][0]["content"]["parts"][0]["text"]
-            message = f"🎯 CHASSE IMMO - SIMULATION & PÉPITE\n\n{analysis}"
+            message = f"🎯 CHASSE IMMO - OCCUPATION PARTIELLE & CASH-FLOW\n\n{analysis}"
             send_telegram(message)
         elif response.status_code == 429:
-            # Gestion propre si le quota journalier est atteint
-            print("Quota journalier Gemini atteint (429).")
-            send_telegram("⚠️ *Chasse Immo* : Quota journalier de l'API atteint suite aux tests répétés. Le robot reprendra ses envois automatiques dès demain à 9h00 !")
+            print("Quota journalier atteint (429).")
         else:
             send_telegram(f"Erreur API Gemini ({response.status_code}) : {response.text}")
             
