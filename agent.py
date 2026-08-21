@@ -1,4 +1,5 @@
 import os
+import time
 import requests
 
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
@@ -16,11 +17,32 @@ def send_telegram(text):
     except Exception as e:
         print(f"Erreur d'envoi Telegram : {e}")
 
-if __name__ == "__main__":
-    print("Génération du rapport d'investissement (Occupation Partielle)...")
-    
+def ask_gemini_with_retry(prompt, retries=5, delay=5):
     url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key={GEMINI_API_KEY}"
     headers = {"Content-Type": "application/json"}
+    data = {"contents": [{"parts": [{"text": prompt}]}]}
+    
+    for attempt in range(retries):
+        try:
+            response = requests.post(url, headers=headers, json=data, timeout=60)
+            if response.status_code == 200:
+                return response.json()["candidates"][0]["content"]["parts"][0]["text"]
+            elif response.status_code == 503:
+                print(f"Surcharge Google (503), tentative {attempt + 1}/{retries} dans {delay}s...")
+                time.sleep(delay)
+                delay *= 2  # Double le temps d'attente à chaque essai
+            elif response.status_code == 429:
+                return "QUOTA_EXCEEDED"
+            else:
+                return f"Erreur API ({response.status_code}) : {response.text}"
+        except Exception as e:
+            print(f"Erreur réseau tentative {attempt + 1}: {e}")
+            time.sleep(delay)
+            
+    return "Erreur : Le modèle est temporairement surchargé (503) après plusieurs tentatives."
+
+if __name__ == "__main__":
+    print("Génération du rapport d'investissement (Occupation Partielle)...")
     
     prompt = (
         "Agis en tant qu'expert en investissement immobilier et analyste financier redoutable. "
@@ -39,22 +61,14 @@ if __name__ == "__main__":
         "CONSIGNES DE MISE EN PAGE : Sois percutant, va droit au but, utilise des listes à puces courtes pour tenir en un seul message Telegram (sous les 3800 caractères)."
     )
     
-    data = {"contents": [{"parts": [{"text": prompt}]}]}
+    analysis = ask_gemini_with_retry(prompt)
     
-    try:
-        response = requests.post(url, headers=headers, json=data, timeout=60)
-        
-        if response.status_code == 200:
-            result = response.json()
-            analysis = result["candidates"][0]["content"]["parts"][0]["text"]
-            message = f"🎯 CHASSE IMMO - OCCUPATION PARTIELLE & CASH-FLOW\n\n{analysis}"
-            send_telegram(message)
-        elif response.status_code == 429:
-            print("Quota journalier atteint (429).")
-        else:
-            send_telegram(f"Erreur API Gemini ({response.status_code}) : {response.text}")
-            
-    except Exception as e:
-        send_telegram(f"Erreur de connexion : {e}")
+    if analysis == "QUOTA_EXCEEDED":
+        print("Quota journalier atteint (429).")
+    elif analysis.startswith("Erreur"):
+        send_telegram(f"⚠️ *Chasse Immo* : {analysis}")
+    else:
+        message = f"🎯 CHASSE IMMO - OCCUPATION PARTIELLE & CASH-FLOW\n\n{analysis}"
+        send_telegram(message)
         
     print("Fin du script.")
