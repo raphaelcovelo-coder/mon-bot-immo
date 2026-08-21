@@ -6,7 +6,8 @@ TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN")
 TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID")
 
 def ask_gemini(prompt):
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
+    # Changement ici : v1beta devient v1
+    url = f"https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
     headers = {"Content-Type": "application/json"}
     data = {
         "contents": [{"parts": [{"text": prompt}]}]
@@ -16,7 +17,7 @@ def ask_gemini(prompt):
         try:
             return response.json()["candidates"][0]["content"]["parts"][0]["text"]
         except Exception as e:
-            return f"Erreur de lecture de la réponse : {e}"
+            return f"Erreur de lecture : {e}"
     else:
         return f"Erreur API Gemini ({response.status_code}) : {response.text}"
 
@@ -25,21 +26,14 @@ def send_telegram(message):
     payload = {
         "chat_id": TELEGRAM_CHAT_ID,
         "text": message
-        # On retire le parse_mode pour éviter tout blocage
     }
-    response = requests.post(url, json=payload)
-    print(f"Statut Telegram : {response.status_code} - {response.text}")
+    requests.post(url, json=payload)
 
 if __name__ == "__main__":
-    print("L'agent analyse le marché immobilier...")
-    
     prompt = (
-        "Agis en tant qu'expert en investissement immobilier et chasseur de biens. "
-        "Donne une analyse très courte et percutante (5 lignes max) sur le marché de Gujan-Mestras."
+        "Agis en tant qu'expert en investissement immobilier. "
+        "Donne une analyse très courte (5 lignes max) sur le potentiel locatif à Gujan-Mestras."
     )
-    
     analysis = ask_gemini(prompt)
-    
     message_final = f"🏡 Rapport Stratégique - Agent Immo\n\n{analysis}"
     send_telegram(message_final)
-    print("Script terminé !")
