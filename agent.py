@@ -8,10 +8,12 @@ TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID")
 
 def send_telegram(text):
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
-    payload = {"chat_id": TELEGRAM_CHAT_ID, "text": text, "parse_mode": "Markdown"}
+    # On retire parse_mode pour éviter tout plantage lié aux caractères spéciaux
+    payload = {"chat_id": TELEGRAM_CHAT_ID, "text": text}
     try:
         response = requests.post(url, json=payload)
         print(f"Statut Telegram : {response.status_code}")
+        print(f"Réponse Telegram : {response.text}")
     except Exception as e:
         print(f"Erreur d'envoi Telegram : {e}")
 
@@ -30,7 +32,7 @@ def ask_gemini_with_retry(prompt, retries=4, delay=5):
         elif response.status_code == 503:
             print(f"Surcharge Google (503), tentative {attempt + 1}/{retries} dans {delay}s...")
             time.sleep(delay)
-            delay *= 2  # Double le temps d'attente à chaque essai
+            delay *= 2
         else:
             return f"Erreur API ({response.status_code}) : {response.text}"
             
@@ -41,7 +43,7 @@ if __name__ == "__main__":
     
     prompt = (
         "Agis en tant qu'expert en investissement immobilier. "
-        "Fournis une analyse stratégique pour l'achat d'un **immeuble de rapport à rénover** "
+        "Fournis une analyse stratégique pour l'achat d'un immeuble de rapport à rénover "
         "(gros travaux, plateaux à aménager, rafraîchissement lourd) dans le Sud-Ouest (Gironde, Landes, Lot-et-Garonne, Dordogne, etc.). "
         "Rappel stratégique : les travaux sont à coût nul pour l'investisseur, il faut donc chercher des passoires thermiques ou des biens à fort potentiel de transformation pour maximiser la plus-value. "
         "Critères stricts : "
@@ -52,6 +54,6 @@ if __name__ == "__main__":
     )
     
     analysis = ask_gemini_with_retry(prompt)
-    message = f"🏗️ *Chasse Immo - Spécial Immeubles à Rénover*\n\n{analysis}"
+    message = f"CHASSE IMMO - SPECIAL IMMEUBLES A RENOVER\n\n{analysis}"
     send_telegram(message)
     print("Processus terminé.")
