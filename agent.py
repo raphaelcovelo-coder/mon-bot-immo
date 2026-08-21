@@ -1,29 +1,51 @@
-name: Immo Search Agent
+import os
+import requests
 
-on:
-  workflow_dispatch: # Permet de déclencher un envoi immédiat quand tu cliques sur "Run workflow"
-  schedule:
-    - cron: '0 8 * * *'   # Premier envoi de la journée (8h00)
-    - cron: '0 14 * * *'  # Deuxième envoi de la journée (14h00)
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
+TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN")
+TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID")
 
-jobs:
-  run-agent:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+def ask_gemini(prompt):
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key={GEMINI_API_KEY}"
+    headers = {"Content-Type": "application/json"}
+    data = {
+        "contents": [{"parts": [{"text": prompt}]}]
+    }
+    response = requests.post(url, headers=headers, json=data)
+    if response.status_code == 200:
+        try:
+            return response.json()["candidates"][0]["content"]["parts"][0]["text"]
+        except Exception as e:
+            return f"Erreur de lecture : {e}"
+    else:
+        return f"Erreur API Gemini ({response.status_code}) : {response.text}"
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
+def send_telegram(message):
+    url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
+    payload = {
+        "chat_id": TELEGRAM_CHAT_ID,
+        "text": message
+    }
+    requests.post(url, json=payload)
 
-      - name: Install dependencies
-        run: pip install requests
-
-      - name: Run agent
-        env:
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
-          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-        run: python agent.py
+if __name__ == "__main__":
+    print("L'agent analyse le marché des immeubles de rapport...")
+    
+    prompt = (
+        "Agis en tant qu'expert en investissement immobilier. "
+        "Recherche et analyse des opportunités d'immeubles de rapport dans le Sud-Ouest. "
+        "Critères stricts : "
+        "1. Budget total max : 300 000 €. "
+        "2. Typologie : Immeuble résidentiel uniquement (exclure tout local commercial). "
+        "3. État : 50% d'occupation actuelle (moitié en activité). "
+        "4. Levier financier : Les travaux de rénovation sont à coût zéro (avantage professionnel). "
+        "5. Objectif : Crédit sur 25 ans avec cash-flow positif quasi immédiat grâce à l'optimisation des surfaces rénovées gratuitement. "
+        "Identifie les secteurs du Sud-Ouest où ce modèle est le plus viable. "
+        "Présente une analyse stratégique percutante et les points de vigilance financiers."
+    )
+    
+    analysis = ask_gemini(prompt)
+    
+    message_final = f"🏗️ *Chasse Immo - Stratégie Optimisée*\n\n{analysis}"
+    send_telegram(message_final)
+    print("Rapport immeuble envoyé !")
