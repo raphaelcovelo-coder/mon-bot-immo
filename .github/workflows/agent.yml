@@ -1,24 +1,26 @@
-name: Immo Search Agent
+name: Run Chasse Immo Agent
 
 on:
-  workflow_dispatch:
   schedule:
-    - cron: '0 8 * * *'  # Un seul envoi par jour pour économiser le quota
+    # S'exécute tous les jours à 7h00 UTC (soit 9h00 en France)
+    - cron: '0 7 * * *'
+  workflow_dispatch: # Permet aussi de le lancer manuellement à tout moment
 
 jobs:
   run-agent:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v3
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v4
         with:
           python-version: '3.10'
 
       - name: Install dependencies
-        run: pip install requests
+        run: |
+          pip install requests
 
       - name: Run agent
         env:
