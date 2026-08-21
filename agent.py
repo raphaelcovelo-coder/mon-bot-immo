@@ -18,7 +18,7 @@ def ask_gemini(prompt):
         except Exception as e:
             return f"Erreur de lecture de la réponse : {e}"
     else:
-        return f"Erreur API Gemini ({response.status_code})"
+        return f"Erreur API Gemini ({response.status_code}) : {response.text}"
 
 def send_telegram(message):
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
