@@ -1,9 +1,10 @@
 name: Immo Search Agent
 
 on:
-  workflow_dispatch: # Pour pouvoir le lancer manuellement aussi
+  workflow_dispatch:
   schedule:
-    - cron: '0 8 * * *' # S'exécute tous les jours à 8h00 du matin
+    - cron: '0 8 * * *'
+    - cron: '0 14 * * *'
 
 jobs:
   run-agent:
