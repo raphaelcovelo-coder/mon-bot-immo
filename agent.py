@@ -5,31 +5,28 @@ GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN")
 TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID")
 
-def ask_gemini(prompt):
-    # On remet le bon modèle et l'URL v1beta qui fonctionnent avec ta clé
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key={GEMINI_API_KEY}"
-    headers = {"Content-Type": "application/json"}
-    data = {"contents": [{"parts": [{"text": prompt}]}]}
-    
-    response = requests.post(url, headers=headers, json=data)
-    
-    if response.status_code == 200:
-        return response.json()["candidates"][0]["content"]["parts"][0]["text"]
-    else:
-        return f"Erreur API ({response.status_code}) : {response.text}"
-
-def send_telegram(message):
+def send_debug_telegram(message):
+    print("Tentative d'envoi Telegram...")
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
     payload = {"chat_id": TELEGRAM_CHAT_ID, "text": message}
-    requests.post(url, json=payload)
+    try:
+        response = requests.post(url, json=payload)
+        print(f"Statut HTTP Telegram : {response.status_code}")
+        print(f"Réponse Telegram : {response.text}")
+    except Exception as e:
+        print(f"ERREUR CRITIQUE DANS L'ENVOI TELEGRAM : {e}")
 
 if __name__ == "__main__":
-    prompt = (
-        "Donne-moi une analyse stratégique des immeubles de rapport dans le Sud-Ouest. "
-        "Quelles sont les villes où le rendement locatif est élevé actuellement pour un budget de 300 000 € ? "
-        "Réponds en tant qu'expert en investissement."
-    )
+    print("--- DÉBUT DU SCRIPT ---")
     
-    analysis = ask_gemini(prompt)
-    send_telegram(f"🏗️ *Test Robot Stabilité (Nouvelle Clé)*\n\n{analysis}")
-    print("Test envoyé !")
+    # 1. Vérification des secrets (sans les afficher en entier pour la sécurité)
+    print(f"Clé Gemini présente : {bool(GEMINI_API_KEY)}")
+    print(f"Token Telegram présent : {bool(TELEGRAM_TOKEN)}")
+    print(f"Chat ID présent : {bool(TELEGRAM_CHAT_ID)}")
+
+    # 2. Test ultra-simple sans Gemini pour vérifier la connexion Telegram
+    test_message = "🤖 Test de connexion robot : OK"
+    print("Envoi du message de test...")
+    send_debug_telegram(test_message)
+    
+    print("--- FIN DU SCRIPT ---")
