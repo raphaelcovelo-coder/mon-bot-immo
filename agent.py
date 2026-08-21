@@ -7,39 +7,39 @@ TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID")
 
 def send_telegram(text):
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
-    payload = {"chat_id": TELEGRAM_CHAT_ID, "text": text}
+    payload = {"chat_id": TELEGRAM_CHAT_ID, "text": text, "parse_mode": "Markdown"}
     response = requests.post(url, json=payload)
     print(f"Statut Telegram : {response.status_code}")
-    print(f"Réponse Telegram : {response.text}")
 
 if __name__ == "__main__":
-    print("Début du script...")
+    print("Génération du rapport 'Immeubles avec Travaux'...")
     
     url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key={GEMINI_API_KEY}"
     headers = {"Content-Type": "application/json"}
     
     prompt = (
         "Agis en tant qu'expert en investissement immobilier. "
-        "Donne une analyse courte des meilleures communes du Sud-Ouest pour un immeuble de rapport (budget max 300 000 €, rénovation à coût nul). "
-        "Donne pour chaque commune le lien URL direct vers LeBonCoin sous forme d'adresse brute."
+        "Fournis une analyse stratégique pour l'achat d'un **immeuble de rapport à rénover** "
+        "(gros travaux, plateaux à aménager, rafraîchissement lourd) dans le Sud-Ouest (Gironde, Landes, Lot-et-Garonne, Dordogne, etc.). "
+        "Rappel stratégique : les travaux sont à coût nul pour l'investisseur, il faut donc chercher des passoires thermiques ou des biens à fort potentiel de transformation pour maximiser la plus-value. "
+        "Critères stricts : "
+        "1. Budget maximum : 300 000 € (achat + structure). "
+        "2. Immeuble résidentiel uniquement (exclure tout local commercial). "
+        "3. Orientation : Biens nécessitant des travaux (exclure absolument le clé en main). "
+        "Donne 2 ou 3 communes cibles très porteuses pour ce profil et inclus des liens de recherche clairs vers LeBonCoin."
     )
     
     data = {"contents": [{"parts": [{"text": prompt}]}]}
     
     response = requests.post(url, headers=headers, json=data)
-    print(f"Statut Gemini : {response.status_code}")
     
     if response.status_code == 200:
         try:
             result = response.json()
             analysis = result["candidates"][0]["content"]["parts"][0]["text"]
-            message = f"🏗️ Opportunités & Liens :\n\n{analysis}"
+            message = f"🏗️ *Chasse Immo - Spécial Immeubles à Rénover*\n\n{analysis}"
             send_telegram(message)
         except Exception as e:
-            err_msg = f"Erreur de traitement du texte : {e}"
-            print(err_msg)
-            send_telegram(err_msg)
+            send_telegram(f"Erreur de traitement : {e}")
     else:
-        err_msg = f"Erreur Gemini ({response.status_code}) : {response.text}"
-        print(err_msg)
-        send_telegram(err_msg)
+        send_telegram(f"Erreur API ({response.status_code}) : {response.text}")
