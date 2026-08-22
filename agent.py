@@ -10,7 +10,6 @@ def send_telegram(text):
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
     if len(text) > 4000:
         text = text[:3900] + "\n\n[Rapport tronqué]"
-    # Pas de Markdown pour éviter les erreurs de formatage, Telegram gère les liens auto
     payload = {"chat_id": TELEGRAM_CHAT_ID, "text": text}
     try:
         response = requests.post(url, json=payload, timeout=15)
@@ -22,13 +21,19 @@ def send_telegram(text):
 def ask_gemini_with_retry(prompt, retries=3, delay=5):
     url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key={GEMINI_API_KEY}"
     headers = {"Content-Type": "application/json"}
-    data = {"contents": [{"parts": [{"text": prompt}]}]}
+    
+    # Recherche web en direct activée pour scanner le web
+    data = {
+        "contents": [{"parts": [{"text": prompt}]}],
+        "tools": [{"googleSearch": {}}]
+    }
     
     for attempt in range(retries):
         try:
             response = requests.post(url, headers=headers, json=data, timeout=60)
             if response.status_code == 200:
-                return response.json()["candidates"][0]["content"]["parts"][0]["text"]
+                result = response.json()
+                return result["candidates"][0]["content"]["parts"][0]["text"]
             elif response.status_code == 429:
                 return "ERREUR_QUOTA"
             time.sleep(delay)
@@ -38,19 +43,15 @@ def ask_gemini_with_retry(prompt, retries=3, delay=5):
     return "Erreur : Impossible de contacter Gemini."
 
 if __name__ == "__main__":
-    # Prompt optimisé pour inclure Analyse + Liens Dynamiques + Script
     prompt = (
-        "Agis en tant qu'expert en investissement immobilier. "
-        "Analyse un immeuble de rapport (Agen, 220k€ max, partiellement occupé). "
-        "STRUCTURE DE RÉPONSE OBLIGATOIRE : "
-        "1. ANALYSE FINANCIÈRE : Prix, travaux 0€, cash-flow net immédiat (dès le 1er mois). "
-        "2. RADAR DE RECHERCHE (LIENS DYNAMIQUES) : Copie ces liens exacts pour surveiller le marché en temps réel :"
-        "- Agences Agen (Google Search) : https://www.google.com/search?q=immeuble+de+rapport+Agen+à+vendre+agence+immobilière "
-        "- Leboncoin Pro (Agen) : https://www.leboncoin.fr/recherche?category=9&locations=Agen_47000&price=max-220000&real_estate_type=4 "
-        "3. SCRIPT VIP (À copier-coller pour appeler les agences) : "
-        "'Bonjour, je suis investisseur sur Agen. Je recherche un immeuble de rapport (budget 220k) avec occupation partielle. "
-        "J'ai une capacité de financement validée. Pouvez-vous me mettre en priorité sur vos mandats 'off-market' ?'"
-        "Sois percutant, concis, liste à puces."
+        "Effectue une recherche sur le web en temps réel pour trouver des annonces actuelles "
+        "d'immeubles de rapport à vendre dans le **Grand Sud-Ouest** (ex: Lot-et-Garonne, Dordogne, Tarn-et-Garonne, Gironde, Landes) "
+        "avec un budget maximum de 220 000 €. "
+        "FOURNIS UN TOPO SYNTHÉTIQUE : "
+        "1. Liste les biens actuellement visibles sur le web correspondant à ces critères (ville, département, prix). "
+        "2. Pour chaque bien trouvé : indique une brève description (surface, état, potentiel d'occupation partielle) et le **lien web direct** vers l'annonce. "
+        "3. Mets en avant les opportunités avec du potentiel de second œuvre ou partiellement louées. "
+        "Sois direct, percutant et va à l'essentiel pour me simplifier la veille."
     )
     
     analysis = ask_gemini_with_retry(prompt)
@@ -60,5 +61,5 @@ if __name__ == "__main__":
     elif analysis.startswith("Erreur"):
         send_telegram(f"⚠️ Erreur Chasse Immo : {analysis}")
     else:
-        message = f"🎯 CHASSE IMMO - STRATÉGIE COMPLÈTE\n\n{analysis}"
+        message = f"🎯 TOPO ANNONCES LIVE - SUD-OUEST\n\n{analysis}"
         send_telegram(message)
