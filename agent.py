@@ -19,7 +19,6 @@ def send_telegram(text):
         print(f"Erreur réseau Telegram : {e}")
 
 def ask_grok_with_retry(prompt, retries=3, delay=5):
-    # Endpoint officiel de l'API xAI (Grok)
     url = "https://api.x.ai/v1/chat/completions"
     headers = {
         "Content-Type": "application/json",
@@ -27,7 +26,7 @@ def ask_grok_with_retry(prompt, retries=3, delay=5):
     }
     
     data = {
-        "model": "grok-beta",  # Modèle standard de l'API xAI
+        "model": "grok-4.6",  # Modèle officiel à jour
         "messages": [
             {
                 "role": "system",
@@ -46,7 +45,8 @@ def ask_grok_with_retry(prompt, retries=3, delay=5):
             response = requests.post(url, headers=headers, json=data, timeout=60)
             if response.status_code == 200:
                 result = response.json()
-                return result["choices"]["message"]["content"]
+                # Correction du chemin d'accès (ajout de [0] pour cibler le premier choix)
+                return result["choices"][0]["message"]["content"]
             elif response.status_code == 429:
                 return "ERREUR_QUOTA"
             else:
