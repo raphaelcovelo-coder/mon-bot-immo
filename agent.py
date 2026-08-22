@@ -10,7 +10,15 @@ def send_telegram(text):
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
     if len(text) > 4000:
         text = text[:3950] + "\n\n[Rapport tronqué]"
-    payload = {"chat_id": TELEGRAM_CHAT_ID, "text": text}
+    
+    # Utilisation du mode Markdown pour rendre les liens cliquables
+    payload = {
+        "chat_id": TELEGRAM_CHAT_ID, 
+        "text": text,
+        "parse_mode": "Markdown",
+        "disable_web_page_preview": False # Laisse un aperçu propre si disponible
+    }
+    
     try:
         response = requests.post(url, json=payload, timeout=15)
         print(f"Statut Telegram : {response.status_code}")
@@ -30,7 +38,7 @@ def ask_gemini_with_retry(prompt, retries=5, delay=5):
             elif response.status_code == 503:
                 print(f"Surcharge Google (503), tentative {attempt + 1}/{retries} dans {delay}s...")
                 time.sleep(delay)
-                delay *= 2  # Double le temps d'attente à chaque essai
+                delay *= 2
             elif response.status_code == 429:
                 return "QUOTA_EXCEEDED"
             else:
@@ -39,26 +47,21 @@ def ask_gemini_with_retry(prompt, retries=5, delay=5):
             print(f"Erreur réseau tentative {attempt + 1}: {e}")
             time.sleep(delay)
             
-    return "Erreur : Le modèle est temporairement surchargé (503) après plusieurs tentatives."
+    return "Erreur : Le modèle est temporairement surchargé (503)."
 
 if __name__ == "__main__":
-    print("Génération du rapport d'investissement (Occupation Partielle)...")
+    print("Génération du rapport avec liens de recherche ciblés...")
     
     prompt = (
         "Agis en tant qu'expert en investissement immobilier et analyste financier redoutable. "
-        "Fournis une analyse ultra-concrète et chiffrée pour un immeuble de rapport dans le Sud-Ouest (ex: Agen, Montauban, Périgueux) "
-        "en ciblant **exclusivement des immeubles partiellement occupés** (ex: sur 4 lots, 2 sont déjà loués avec baux en cours et 2 sont vacants/bruts à aménager). "
+        "Fournis une analyse ultra-concrète et chiffrée pour un immeuble de rapport dans le Sud-Ouest (ex: Agen) "
+        "en ciblant **exclusivement des immeubles partiellement occupés** (ex: sur 4 lots, 2 loués et 2 vacants/bruts). "
         "Règles strictes : "
-        "1. **Jamais 100% loué, jamais 100% vide** : l'occupation partielle est obligatoire pour avoir du cash-flow immédiat sur les lots loués tout en pouvant attaquer les travaux de second œuvre tout de suite sur les lots vacants, sans attendre le départ de locataires. "
-        "2. Budget d'acquisition max : 220 000 € (+ notaire). "
-        "3. Structure saine, **second œuvre uniquement** (électricité, plomberie, isolation, cloisons sur les plateaux vacants). "
-        "4. **Travaux à 0 € pour l'investisseur** (bénéficiant de la décote partielle et de la valeur ajoutée immédiate). "
-        "5. **Simulation financière complète** : "
-        "   - Prix d'achat + Notaire. "
-        "   - Loyers actuels des lots occupés VS potentiel total une fois les plateaux vacants rénovés. "
-        "   - Mensualité de crédit (25 ans) et calcul précis du **cash-flow net dès le premier mois**. "
-        "6. **Sources pros** : Cite des sites spécialisés (ex: immo-notaires.fr, agorastore.fr, cessions professionnelles). "
-        "CONSIGNES DE MISE EN PAGE : Sois percutant, va droit au but, utilise des listes à puces courtes pour tenir en un seul message Telegram (sous les 3800 caractères)."
+        "1. Budget d'acquisition max : 220 000 € (+ notaire). "
+        "2. Structure saine, **second œuvre uniquement** (électricité, plomberie, isolation sur les plateaux vacants). "
+        "3. Simulation financière complète : Prix d'achat, notaire, travaux à 0€, loyers actuels vs futurs, mensualité de crédit (25 ans), et **cash-flow net dès le premier mois**. "
+        "4. **LIENS WEB STABLES OBLIGATOIRES** : Fournis 2 liens Markdown cliquables vers des plateformes de recherche spécifiques et fonctionnelles (ex: [Recherche Immo-Notaires Agen](https://www.immo-notaires.fr) ou [Agorastore Nouvelle-Aquitaine](https://www.agorastore.fr)). Les liens doivent utiliser le format Markdown [Nom du site](URL) pour être cliquables sur Telegram. "
+        "CONSIGNES DE MISE EN PAGE : Sois percutant, utilise des listes à puces courtes pour tenir en un seul message Telegram (sous les 3800 caractères)."
     )
     
     analysis = ask_gemini_with_retry(prompt)
@@ -68,7 +71,7 @@ if __name__ == "__main__":
     elif analysis.startswith("Erreur"):
         send_telegram(f"⚠️ *Chasse Immo* : {analysis}")
     else:
-        message = f"🎯 CHASSE IMMO - OCCUPATION PARTIELLE & CASH-FLOW\n\n{analysis}"
+        message = f"🎯 *CHASSE IMMO - OCCUPATION PARTIELLE & LIENS*\n\n{analysis}"
         send_telegram(message)
         
     print("Fin du script.")
