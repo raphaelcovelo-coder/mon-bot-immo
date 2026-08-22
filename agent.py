@@ -48,8 +48,15 @@ def analyze_with_gemini(raw_data):
     
     genai.configure(api_key=GEMINI_API_KEY)
     
-    # Liste de modèles à tester par ordre de préférence
-    models_to_try = ["gemini-1.5-flash", "gemini-2.0-flash", "gemini-1.5-pro", "gemini-pro"]
+    # Liste actualisée des modèles récents de Google
+    models_to_try = [
+        "gemini-3.7-flash",
+        "gemini-3.6-flash",
+        "gemini-3.5-flash",
+        "gemini-2.5-flash",
+        "gemini-2.0-flash",
+        "gemini-1.5-flash"
+    ]
     
     prompt = (
         "Analyse ces résultats de recherche web brute concernant des immeubles de rapport "
@@ -57,16 +64,35 @@ def analyze_with_gemini(raw_data):
         "Fais un topo court, propre et synthétique avec les liens disponibles :\n\n" + raw_data
     )
     
+    # 1. Test des modèles connus de la liste
     for model_name in models_to_try:
         try:
+            print(f"Tentative avec le modèle : {model_name}")
             model = genai.GenerativeModel(model_name)
             response = model.generate_content(prompt)
             if response and response.text:
                 return response.text
         except Exception as e:
-            print(f"Modèle {model_name} non disponible, essai suivant... ({e})")
+            print(f"Modèle {model_name} échoué : {e}")
             continue
             
+    # 2. Si aucun de la liste ne passe, on interroge dynamiquement l'API pour trouver n'importe quel modèle compatible
+    try:
+        print("Interrogation dynamique des modèles disponibles...")
+        for m in genai.list_models():
+            if 'generateContent' in m.supported_generation_methods:
+                clean_name = m.name.replace("models/", "")
+                print(f"Test du modèle découvert dynamiquement : {clean_name}")
+                try:
+                    model = genai.GenerativeModel(clean_name)
+                    response = model.generate_content(prompt)
+                    if response and response.text:
+                        return response.text
+                except Exception:
+                    continue
+    except Exception as ex:
+        print(f"Erreur lors du listage dynamique : {ex}")
+
     return "⚠️ Erreur Gemini : Aucun modèle compatible n'a pu être exécuté avec cette clé."
 
 if __name__ == "__main__":
