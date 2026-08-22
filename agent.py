@@ -17,10 +17,26 @@ def send_telegram(text):
     except Exception as e:
         print(f"Erreur réseau Telegram : {e}")
 
+def get_available_model():
+    """Interroge l'API xAI pour récupérer automatiquement un modèle valide."""
+    url = "https://api.x.ai/v1/models"
+    headers = {"Authorization": f"Bearer {GROK_API_KEY}"}
+    try:
+        response = requests.get(url, headers=headers, timeout=10)
+        if response.status_code == 200:
+            models = response.json().get("data", [])
+            if models:
+                # Retourne le premier modèle actif disponible
+                return models[0]["id"]
+    except Exception:
+        pass
+    return "grok-2-latest" # Valeur de repli par défaut
+
 def ask_grok(prompt):
     if not GROK_API_KEY:
         return "⚠️ Erreur : La clé GROK_API_KEY est vide ou introuvable dans les secrets."
         
+    model_name = get_available_model()
     url = "https://api.x.ai/v1/chat/completions"
     headers = {
         "Content-Type": "application/json",
@@ -28,7 +44,7 @@ def ask_grok(prompt):
     }
     
     data = {
-        "model": "grok-beta",  # Correction du nom du modèle xAI
+        "model": model_name,
         "messages": [
             {"role": "system", "content": "Tu es un expert en investissement immobilier pragmatique."},
             {"role": "user", "content": prompt}
@@ -42,7 +58,7 @@ def ask_grok(prompt):
             result = response.json()
             return result["choices"][0]["message"]["content"]
         else:
-            return f"⚠️ Erreur API xAI ({response.status_code}) : {response.text}"
+            return f"⚠️ Erreur API xAI ({response.status_code}) avec le modèle '{model_name}' : {response.text}"
     except Exception as e:
         return f"⚠️ Exception technique : {str(e)}"
 
