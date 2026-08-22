@@ -46,31 +46,28 @@ def analyze_with_gemini(raw_data):
     if not GEMINI_API_KEY:
         return "⚠️ Erreur : La clé GEMINI_API_KEY est introuvable dans les Secrets GitHub."
     
-    try:
-        genai.configure(api_key=GEMINI_API_KEY)
-        
-        # Détection automatique d'un modèle disponible pour éviter les erreurs 404
-        chosen_model = "gemini-1.5-flash"
+    genai.configure(api_key=GEMINI_API_KEY)
+    
+    # Liste de modèles à tester par ordre de préférence
+    models_to_try = ["gemini-1.5-flash", "gemini-2.0-flash", "gemini-1.5-pro", "gemini-pro"]
+    
+    prompt = (
+        "Analyse ces résultats de recherche web brute concernant des immeubles de rapport "
+        "à vendre dans le Sud-Ouest (budget max 220 000 €). "
+        "Fais un topo court, propre et synthétique avec les liens disponibles :\n\n" + raw_data
+    )
+    
+    for model_name in models_to_try:
         try:
-            for m in genai.list_models():
-                if 'generateContent' in m.supported_generation_methods:
-                    chosen_model = m.name
-                    break
-        except Exception:
-            pass
-
-        model = genai.GenerativeModel(chosen_model)
-        
-        prompt = (
-            "Analyse ces résultats de recherche web brute concernant des immeubles de rapport "
-            "à vendre dans le Sud-Ouest (budget max 220 000 €). "
-            "Fais un topo court, propre et synthétique avec les liens disponibles :\n\n" + raw_data
-        )
-        
-        response = model.generate_content(prompt)
-        return response.text
-    except Exception as e:
-        return f"⚠️ Erreur Gemini : {str(e)}"
+            model = genai.GenerativeModel(model_name)
+            response = model.generate_content(prompt)
+            if response and response.text:
+                return response.text
+        except Exception as e:
+            print(f"Modèle {model_name} non disponible, essai suivant... ({e})")
+            continue
+            
+    return "⚠️ Erreur Gemini : Aucun modèle compatible n'a pu être exécuté avec cette clé."
 
 if __name__ == "__main__":
     print("Démarrage de la recherche...")
