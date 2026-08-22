@@ -31,34 +31,31 @@ def search_web():
     if not HAS_DDG:
         return "Module de recherche non disponible."
     
+    # Requêtes ultra-ciblées pour forcer la remontée de vraies annonces immobilières
     queries = [
-        "immeuble de rapport a vendre gironde landes dordogne 220000",
-        "immobilier immeuble de rapport sud ouest pas cher",
-        "annonce immeuble a vendre lot et garonne dordogne"
+        "site:bienici.com immeuble de rapport a vendre dordogne lot-et-garonne 220000",
+        "site:seloger.com immeuble a vendre bergerac marmande",
+        "immeuble de rapport a vendre bergerac marmande 220000"
     ]
     
     results_text = ""
     for q in queries:
         try:
             with DDGS() as ddgs:
-                # Utilisation de backend="html" pour éviter les blocages de serveurs GitHub
-                results = list(ddgs.text(q, max_results=3, backend="html"))
+                results = list(ddgs.text(q, max_results=4, backend="html"))
                 if results:
                     for r in results:
-                        results_text += f"- Titre: {r.get('title')}\n  Lien: {r.get('href')}\n  Extrait: {r.get('body')}\n\n"
-                    break
+                        title = r.get('title', '')
+                        href = r.get('href', '')
+                        body = r.get('body', '')
+                        results_text += f"- Annonce: {title}\n  Lien: {href}\n  Détails: {body}\n\n"
         except Exception as e:
-            print(f"Tentative échouée pour '{q}': {e}")
+            print(f"Erreur sur la requête '{q}': {e}")
             continue
             
-    # Fallback intelligent si le web est bloqué, pour ne jamais renvoyer de texte vide
     if not results_text.strip():
-        results_text = (
-            "Recherche en direct restreinte par le réseau. "
-            "Cible la veille active d'immeubles de rapport dans le Grand Sud-Ouest "
-            "(Lot-et-Garonne, Dordogne, Tarn-et-Garonne, Gironde, Landes) avec un budget max de 220 000 €, "
-            "en ciblant des biens à rénover (potentiel de second œuvre, appartements de 2 à 3 lots)."
-        )
+        results_text = "Aucune annonce brute récupérée ce matin, application du modèle d'analyse standard."
+        
     return results_text
 
 def analyze_with_gemini(raw_data):
@@ -77,16 +74,17 @@ def analyze_with_gemini(raw_data):
     ]
     
     prompt = (
-        "Agis en tant qu'expert en investissement immobilier pragmatique. "
-        "À partir des éléments suivants, fournis un topo synthétique, percutant et structuré "
-        "pour la recherche d'immeubles de rapport dans le Grand Sud-Ouest (budget max 220 000 €) :\n\n"
+        "Agis en tant qu'expert en investissement immobilier. "
+        "Voici des données brutes extraites du web concernant des immeubles de rapport (budget max 220k€) "
+        "dans le Grand Sud-Ouest (Bergerac, Marmande, Dordogne, Lot-et-Garonne) :\n\n"
         f"{raw_data}\n\n"
-        "Structure ta réponse exactement sous ce format :\n"
-        "* **Localisation & Prix FAI ciblés**\n"
-        "* **Composition type** (nombre de lots, surfaces, potentiel)\n"
-        "* **Stratégie & Rentabilité brute estimée**\n"
-        "* **Points d'attention** (travaux, second œuvre)\n"
-        "* **Liens utiles / Plateformes de veille**"
+        "Génère un topo ultra-pratique et percutant pour Telegram comprenant :\n"
+        "1. **Les annonces réelles identifiées** (Ville, Prix affiché, et **le lien web direct** extrait des sources ci-dessus).\n"
+        "2. **Simulation financière type** pour un bien à 180 000 € FAI :\n"
+        "   - Emprunt total (achat + notaire ~194 400 €) sur 25 ans à ~3,6% (Mensualité globale ~1 033 €/mois).\n"
+        "   - Rappel de l'atout majeur : **Travaux de rénovation à 0 €** pour l'investisseur (pas d'enveloppe travaux à emprunter, valorisation nette instantanée).\n"
+        "   - Loyers estimés après optimisation (ex: 3 lots meublés = ~1 850 €/mois).\n"
+        "   - **Cash-flow net estimé** et rentabilité brute."
     )
     
     for model_name in models_to_try:
@@ -115,9 +113,9 @@ def analyze_with_gemini(raw_data):
     return "⚠️ Erreur Gemini : Aucun modèle compatible n'a pu être exécuté."
 
 if __name__ == "__main__":
-    print("Démarrage de la recherche...")
+    print("Démarrage de la recherche automatisée d'annonces...")
     raw_data = search_web()
     analysis = analyze_with_gemini(raw_data)
-    message = f"🎯 TOPO IMMO - SUD-OUEST\n\n{analysis}"
+    message = f"🎯 TOPO IMMO & RENTABILITÉ - SUD-OUEST\n\n{analysis}"
     send_telegram(message)
     print("Exécution terminée.")
