@@ -1,5 +1,4 @@
 import os
-import time
 import requests
 
 GROK_API_KEY = os.environ.get("GROK_API_KEY")
@@ -18,7 +17,10 @@ def send_telegram(text):
     except Exception as e:
         print(f"Erreur réseau Telegram : {e}")
 
-def ask_grok_with_retry(prompt, retries=3, delay=5):
+def ask_grok(prompt):
+    if not GROK_API_KEY:
+        return "⚠️ Erreur : La clé GROK_API_KEY est introuvable dans les Secrets GitHub !"
+        
     url = "https://api.x.ai/v1/chat/completions"
     headers = {
         "Content-Type": "application/json",
@@ -26,11 +28,11 @@ def ask_grok_with_retry(prompt, retries=3, delay=5):
     }
     
     data = {
-        "model": "grok-4.6",  # Modèle officiel à jour
+        "model": "grok-2",  # Modèle stable officiel xAI
         "messages": [
             {
                 "role": "system",
-                "content": "Tu es un expert en investissement immobilier ultra-précis et pragmatique."
+                "content": "Tu es un expert en investissement immobilier pragmatique."
             },
             {
                 "role": "user",
@@ -40,23 +42,15 @@ def ask_grok_with_retry(prompt, retries=3, delay=5):
         "temperature": 0.3
     }
     
-    for attempt in range(retries):
-        try:
-            response = requests.post(url, headers=headers, json=data, timeout=60)
-            if response.status_code == 200:
-                result = response.json()
-                # Correction du chemin d'accès (ajout de [0] pour cibler le premier choix)
-                return result["choices"][0]["message"]["content"]
-            elif response.status_code == 429:
-                return "ERREUR_QUOTA"
-            else:
-                print(f"Erreur API xAI ({response.status_code}): {response.text}")
-            time.sleep(delay)
-        except Exception as e:
-            print(f"Erreur tentative {attempt}: {e}")
-            time.sleep(delay)
-            
-    return "Erreur : Impossible de contacter Grok."
+    try:
+        response = requests.post(url, headers=headers, json=data, timeout=60)
+        if response.status_code == 200:
+            result = response.json()
+            return result["choices"][0]["message"]["content"]
+        else:
+            return f"⚠️ Erreur API xAI ({response.status_code}) : {response.text}"
+    except Exception as e:
+        return f"⚠️ Exception technique : {str(e)}"
 
 if __name__ == "__main__":
     prompt = (
@@ -70,12 +64,6 @@ if __name__ == "__main__":
         "Sois direct, percutant et va à l'essentiel pour me simplifier la veille."
     )
     
-    analysis = ask_grok_with_retry(prompt)
-    
-    if analysis == "ERREUR_QUOTA":
-        send_telegram("⚠️ Quota journalier Grok atteint.")
-    elif analysis.startswith("Erreur"):
-        send_telegram(f"⚠️ Erreur Chasse Immo : {analysis}")
-    else:
-        message = f"🎯 TOPO GROK - SUD-OUEST\n\n{analysis}"
-        send_telegram(message)
+    analysis = ask_grok(prompt)
+    message = f"🎯 TOPO GROK - SUD-OUEST\n\n{analysis}"
+    send_telegram(message)
