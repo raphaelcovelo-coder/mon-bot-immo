@@ -11,18 +11,16 @@ def send_telegram(text):
         text = text[:3900] + "\n\n[Rapport tronqué]"
     payload = {"chat_id": TELEGRAM_CHAT_ID, "text": text}
     try:
-        requests.post(url, json=payload, timeout=15)
+        response = requests.post(url, json=payload, timeout=15)
+        if response.status_code != 200:
+            print(f"Erreur Telegram ({response.status_code}): {response.text}")
     except Exception as e:
         print(f"Erreur réseau Telegram : {e}")
 
-if not GROK_API_KEY:
-    # Diagnostic : on liste ce que GitHub envoie vraiment au script
-    env_keys = list(os.environ.keys())
-    debug_msg = f"⚠️ ERREUR : GROK_API_KEY introuvable.\n\nVariables reçues de GitHub :\n{env_keys}"
-    send_telegram(debug_msg)
-    exit()
-
 def ask_grok(prompt):
+    if not GROK_API_KEY:
+        return "⚠️ Erreur : La clé GROK_API_KEY est vide ou introuvable dans les secrets."
+        
     url = "https://api.x.ai/v1/chat/completions"
     headers = {
         "Content-Type": "application/json",
@@ -30,7 +28,7 @@ def ask_grok(prompt):
     }
     
     data = {
-        "model": "grok-2",
+        "model": "grok-beta",  # Correction du nom du modèle xAI
         "messages": [
             {"role": "system", "content": "Tu es un expert en investissement immobilier pragmatique."},
             {"role": "user", "content": prompt}
