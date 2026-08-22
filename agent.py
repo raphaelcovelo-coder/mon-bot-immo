@@ -11,8 +11,7 @@ def send_telegram(text):
     if len(text) > 4000:
         text = text[:3900] + "\n\n[Rapport tronqué]"
     
-    # Pas de parse_mode pour éviter les crashs, Telegram transforme 
-    # automatiquement les https:// en liens cliquables.
+    # Envoi en texte simple pour garantir que Telegram transforme les URL en liens cliquables
     payload = {"chat_id": TELEGRAM_CHAT_ID, "text": text}
     
     try:
@@ -43,10 +42,14 @@ def ask_gemini_with_retry(prompt, retries=3, delay=5):
 if __name__ == "__main__":
     prompt = (
         "Agis en tant qu'expert en investissement immobilier. "
-        "Analyse un immeuble de rapport dans le Sud-Ouest (Agen), partiellement occupé. "
-        "1. Budget max 220k€. 2. Second œuvre uniquement. 3. Simulation : Prix, travaux 0€, cash-flow net dès le 1er mois. "
-        "4. **Liens directs obligatoires** : Fournis les liens URL complets et fonctionnels (ex: https://www.immo-notaires.fr et https://www.agorastore.fr) écrits en entartier brut pour qu'ils soient cliquables. "
-        "Sois percutant, concis, liste à puces."
+        "Analyse un immeuble de rapport dans le Sud-Ouest (ex: Agen), partiellement occupé (idéalement 50/50 loué/vacant). "
+        "1. Budget max 220k€. 2. Second œuvre uniquement. "
+        "3. Simulation : Prix, travaux 0€, cash-flow net immédiat (dès le 1er mois). "
+        "4. **LIENS DE RECHERCHE DYNAMIQUES (COPIE CES LIENS TELS QUELS)** : "
+        "Pour voir les annonces en temps réel, inclue impérativement ces 2 URL en bas de ton rapport : "
+        "- Immo-Notaires (Agen/47) : https://www.immo-notaires.fr/immobilier/vente/immeuble/departement-47-lot-et-garonne?prix_max=220000 "
+        "- Leboncoin (Immeubles 47) : https://www.leboncoin.fr/recherche?category=9&locations=d_47&price=max-220000&real_estate_type=4 "
+        "Sois percutant, concis, utilise des listes à puces."
     )
     
     analysis = ask_gemini_with_retry(prompt)
